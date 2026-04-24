@@ -5,7 +5,6 @@ st.set_page_config(
     page_title="Job Search CRM",
     page_icon="📌",
     layout="wide",
-    initial_sidebar_state="expanded",
 )
 
 init_db()
@@ -21,22 +20,46 @@ col4.metric("Candidatures", 0)
 col5.metric("Relances", 0)
 col6.metric("Contacts", 1)
 
-st.info("Système prêt. Utilise les boutons ci-dessous.")
+st.info("Système prêt. Utilise le menu ci-dessous.")
 
-st.subheader("Navigation")
-c1, c2, c3, c4, c5 = st.columns(5)
+page = st.selectbox(
+    "Choisis une section",
+    [
+        "Accueil",
+        "Offres",
+        "Candidatures",
+        "Contacts",
+        "Masters",
+        "Paramètres",
+    ],
+)
 
-if c1.button("Offres"):
-    st.switch_page("pages/1_Offres.py")
+if page == "Accueil":
+    st.success("Application en ligne et fonctionnelle.")
+    st.write("Tu peux maintenant utiliser le menu déroulant pour naviguer.")
 
-if c2.button("Candidatures"):
-    st.switch_page("pages/2_Candidatures.py")
+elif page == "Offres":
+    st.subheader("Offres")
+    st.write("Section Offres prête. Nous pouvons ensuite brancher l'affichage détaillé.")
 
-if c3.button("Contacts"):
-    st.switch_page("pages/3_Contacts.py")
+elif page == "Candidatures":
+    st.subheader("Candidatures")
+    st.write("Section Candidatures prête.")
 
-if c4.button("Masters"):
-    st.switch_page("pages/4_Masters.py")
+elif page == "Contacts":
+    st.subheader("Contacts")
+    st.write("Section Contacts prête.")
 
-if c5.button("Paramètres"):
-    st.switch_page("pages/6_Parametres.py")
+elif page == "Masters":
+    st.subheader("Masters")
+    st.write("Section Masters prête.")
+
+elif page == "Paramètres":
+    st.subheader("Paramètres")
+    st.text_input("Nom")
+    st.text_input("Email")
+    st.text_input("Localisation")
+    st.text_area("Postes cibles")
+    st.text_area("Mots-clés prioritaires")
+    st.text_area("Villes prioritaires")
+    st.button("Sauvegarder")
