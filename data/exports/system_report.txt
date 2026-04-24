@@ -1,0 +1,14 @@
+JOB SEARCH CRM - RAPPORT SYNTHETIQUE
+
+Offres actives: 3
+Candidatures: 0
+Contacts: 1
+Masters: 1
+
+TOP OFFRES
+- #3 | LLM Engineer | AI Studio Remote | Remote | score=91.0 | to_apply
+- #1 | AI Engineer - Health Data | HealthTech Paris | Paris | score=88.0 | to_apply
+- #2 | Data Scientist Clinique | MedData Strasbourg | Strasbourg | score=84.0 | new
+
+RELANCES
+- Aucune relance due
