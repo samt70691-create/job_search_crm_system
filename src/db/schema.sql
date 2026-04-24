@@ -112,3 +112,25 @@ CREATE INDEX IF NOT EXISTS idx_job_offers_status ON job_offers(status);
 CREATE INDEX IF NOT EXISTS idx_job_offers_score ON job_offers(score DESC);
 CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(application_status);
 CREATE INDEX IF NOT EXISTS idx_applications_followup ON applications(next_followup_date);
+CREATE TABLE IF NOT EXISTS trainings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,
+    external_id TEXT NOT NULL,
+    program_name TEXT,
+    institution TEXT,
+    city TEXT,
+    program_type TEXT,
+    diploma_level TEXT,
+    duration TEXT,
+    url TEXT,
+    description TEXT,
+    published_at TEXT,
+    status TEXT DEFAULT 'new',
+    score REAL DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(source, external_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trainings_score ON trainings(score DESC);
+CREATE INDEX IF NOT EXISTS idx_trainings_status ON trainings(status);
