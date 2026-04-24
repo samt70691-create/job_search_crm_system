@@ -23,12 +23,14 @@ def get_conn():
 
 
 def table_exists(conn, table_name: str) -> bool:
-    q = """
-    SELECT name
-    FROM sqlite_master
-    WHERE type='table' AND name=?
-    """
-    row = conn.execute(q, (table_name,)).fetchone()
+    row = conn.execute(
+        """
+        SELECT name
+        FROM sqlite_master
+        WHERE type='table' AND name=?
+        """,
+        (table_name,),
+    ).fetchone()
     return row is not None
 
 
@@ -46,21 +48,30 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def ensure_candidate_profile_table(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS candidate_profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            candidate_name TEXT,
+            headline TEXT,
+            email TEXT,
+            phone TEXT,
+            location TEXT,
+            mobility TEXT,
+            target_roles TEXT,
+            priority_locations TEXT,
+            priority_keywords TEXT,
+            cv_summary TEXT,
+            languages TEXT
+        )
+        """
+    )
+    conn.commit()
+
+
 def get_profile(conn):
-    if not table_exists(conn, "candidate_profile"):
-        return {
-            "candidate_name": "",
-            "headline": "",
-            "email": "",
-            "phone": "",
-            "location": "",
-            "mobility": "",
-            "target_roles": "",
-            "priority_locations": "",
-            "priority_keywords": "",
-            "cv_summary": "",
-            "languages": "",
-        }
+    ensure_candidate_profile_table(conn)
 
     df = safe_read_sql(conn, "SELECT * FROM candidate_profile LIMIT 1")
     if df.empty:
@@ -95,9 +106,7 @@ def get_profile(conn):
 
 
 def save_profile(conn, profile: dict):
-    if not table_exists(conn, "candidate_profile"):
-        st.error("Table candidate_profile introuvable dans la base.")
-        return
+    ensure_candidate_profile_table(conn)
 
     existing = conn.execute("SELECT id FROM candidate_profile LIMIT 1").fetchone()
 
@@ -165,6 +174,7 @@ def save_profile(conn, profile: dict):
                 profile["languages"],
             ),
         )
+
     conn.commit()
 
 
@@ -179,15 +189,34 @@ def show_dataframe(df: pd.DataFrame, preferred_columns=None):
         if visible_cols:
             df = df[visible_cols]
 
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
 
 
 conn = get_conn()
 
-offers_df = safe_read_sql(conn, "SELECT * FROM job_offers ORDER BY COALESCE(score, 0) DESC, id DESC") if table_exists(conn, "job_offers") else pd.DataFrame()
-applications_df = safe_read_sql(conn, "SELECT * FROM applications ORDER BY id DESC") if table_exists(conn, "applications") else pd.DataFrame()
-contacts_df = safe_read_sql(conn, "SELECT * FROM contacts ORDER BY id DESC") if table_exists(conn, "contacts") else pd.DataFrame()
-masters_df = safe_read_sql(conn, "SELECT * FROM masters_programs ORDER BY COALESCE(score, 0) DESC, id DESC") if table_exists(conn, "masters_programs") else pd.DataFrame()
+offers_df = (
+    safe_read_sql(conn, "SELECT * FROM job_offers ORDER BY COALESCE(score, 0) DESC, id DESC")
+    if table_exists(conn, "job_offers")
+    else pd.DataFrame()
+)
+
+applications_df = (
+    safe_read_sql(conn, "SELECT * FROM applications ORDER BY id DESC")
+    if table_exists(conn, "applications")
+    else pd.DataFrame()
+)
+
+contacts_df = (
+    safe_read_sql(conn, "SELECT * FROM contacts ORDER BY id DESC")
+    if table_exists(conn, "contacts")
+    else pd.DataFrame()
+)
+
+masters_df = (
+    safe_read_sql(conn, "SELECT * FROM masters_programs ORDER BY COALESCE(score, 0) DESC, id DESC")
+    if table_exists(conn, "masters_programs")
+    else pd.DataFrame()
+)
 
 offers_df = normalize_columns(offers_df)
 applications_df = normalize_columns(applications_df)
@@ -195,10 +224,22 @@ contacts_df = normalize_columns(contacts_df)
 masters_df = normalize_columns(masters_df)
 
 offers_count = len(offers_df)
-new_count = len(offers_df[offers_df["status"].astype(str).str.lower().eq("new")]) if "status" in offers_df.columns else 0
-to_apply_count = len(offers_df[offers_df["status"].astype(str).str.lower().isin(["to_apply", "a_postuler", "à postuler"])]) if "status" in offers_df.columns else 0
+new_count = (
+    len(offers_df[offers_df["status"].astype(str).str.lower().eq("new")])
+    if "status" in offers_df.columns
+    else 0
+)
+to_apply_count = (
+    len(offers_df[offers_df["status"].astype(str).str.lower().isin(["to_apply", "a_postuler", "à postuler"])])
+    if "status" in offers_df.columns
+    else 0
+)
 applications_count = len(applications_df)
-followup_count = len(applications_df[applications_df["application_status"].astype(str).str.lower().eq("followup_due")]) if "application_status" in applications_df.columns else 0
+followup_count = (
+    len(applications_df[applications_df["application_status"].astype(str).str.lower().eq("followup_due")])
+    if "application_status" in applications_df.columns
+    else 0
+)
 contacts_count = len(contacts_df)
 
 st.title("Job Search CRM")
@@ -222,7 +263,7 @@ page = st.selectbox(
 if page == "Accueil":
     st.subheader("Vue d'ensemble")
 
-    left, right = st.columns([1.2, 1])
+    left, right = st.columns([1.4, 1])
 
     with left:
         st.markdown("### Top offres")
@@ -235,7 +276,6 @@ if page == "Accueil":
                 "location",
                 "score",
                 "status",
-                "contract_type",
                 "source",
             ],
         )
@@ -265,14 +305,16 @@ elif page == "Offres":
 
     filtered = offers_df.copy()
 
-    col_a, col_b, col_c = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-    keyword = col_a.text_input("Recherche mot-clé", "")
-    status_filter = col_b.selectbox(
-        "Statut",
-        ["Tous"] + sorted(filtered["status"].dropna().astype(str).unique().tolist()) if "status" in filtered.columns else ["Tous"],
+    keyword = col1.text_input("Mot-clé")
+    status_options = (
+        ["Tous"] + sorted(filtered["status"].dropna().astype(str).unique().tolist())
+        if "status" in filtered.columns
+        else ["Tous"]
     )
-    company_filter = col_c.text_input("Entreprise", "")
+    status_filter = col2.selectbox("Statut", status_options)
+    company_filter = col3.text_input("Entreprise")
 
     if keyword:
         mask = pd.Series(False, index=filtered.index)
@@ -299,7 +341,6 @@ elif page == "Offres":
             "contract_type",
             "score",
             "status",
-            "is_duplicate",
             "source",
             "url",
             "created_at",
@@ -308,7 +349,6 @@ elif page == "Offres":
 
 elif page == "Candidatures":
     st.subheader("Candidatures")
-
     show_dataframe(
         applications_df,
         preferred_columns=[
@@ -324,7 +364,6 @@ elif page == "Candidatures":
 
 elif page == "Contacts":
     st.subheader("Contacts")
-
     show_dataframe(
         contacts_df,
         preferred_columns=[
@@ -342,7 +381,6 @@ elif page == "Contacts":
 
 elif page == "Masters":
     st.subheader("Masters & Formations")
-
     show_dataframe(
         masters_df,
         preferred_columns=[
